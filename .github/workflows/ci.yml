@@ -28,6 +28,8 @@ jobs:
       - run: node --input-type=commonjs -e "const sdk=require('./dist/cjs/index.js'); if(!sdk.Signingflow) process.exit(1)"
       - name: Publish coverage badge
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.node == 22
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           percent=$(node -e 'const fs=require("fs"); const text=fs.readFileSync("test-out.txt","utf8").replace(/\u001b\[[0-9;]*m/g,""); const match=text.match(/all files\s+\|\s+([0-9.]+)/); if(!match){ console.error("coverage summary was not found"); process.exit(1) } process.stdout.write(match[1])')
           bash .github/publish-coverage-badge.sh "$percent"
