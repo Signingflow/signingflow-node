@@ -1,7 +1,7 @@
 {
   "name": "signingflow",
   "version": "0.1.0",
-  "description": "Official Node.js SDK for the Signingflow operations used by skills and MCP tools.",
+  "description": "Official Node.js SDK for sending a document, reading envelope status, and verifying webhooks with the Signingflow API.",
   "license": "MIT",
   "type": "module",
   "repository": "https://github.com/signingflow/signingflow-node",
