@@ -12,7 +12,7 @@ import {
   SigningflowRateLimitError,
   type ErrorFields,
 } from "./errors.js"
-import { fillPath, resolveUrl } from "./path.js"
+import { fillPath, queryContainsSecret, resolveUrl } from "./path.js"
 import { redactMessage, redactViolations } from "./redact.js"
 import { retryDelayMs, sleep } from "./net/retry.js"
 import { fieldViolationsOf, grpcCode, mentionsIdempotency, resourceNameOf, serverMessage, traceCodeOf } from "./status.js"
@@ -47,7 +47,7 @@ export class RequestSender {
     } catch (error) {
       throw new SigningflowInvalidRequestError(error instanceof Error ? error.message : "invalid path", { idempotencyKey })
     }
-    if (url.search.includes(this.config.apiKey)) {
+    if (queryContainsSecret(url.search, this.config.apiKey)) {
       throw new SigningflowInvalidRequestError("The API key must not be sent in the query string.", { idempotencyKey })
     }
     const retries = input.operation.http === "GET" || input.operation.idempotent ? this.config.maxNetworkRetries : 0

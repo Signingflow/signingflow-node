@@ -24,6 +24,30 @@ export function resolveUrl(baseUrl: string, path: string, query?: Record<string,
   return url
 }
 
+/** A raw substring misses a key once the query serializer percent-encodes it. */
+export function queryContainsSecret(rawQuery: string, secret: string): boolean {
+  const query = rawQuery.startsWith("?") ? rawQuery.slice(1) : rawQuery
+  if (!secret || !query) return false
+  const encoded = encodeURIComponent(secret).replace(/%20/g, "+")
+  if (query.includes(secret) || query.includes(encoded)) return true
+  if (hasBrokenPercent(query)) return true
+  const params = new URLSearchParams(query)
+  for (const value of params.values()) {
+    if (value.includes(secret)) return true
+  }
+  return false
+}
+
+function hasBrokenPercent(query: string): boolean {
+  for (let index = 0; index < query.length; index += 1) {
+    if (query[index] !== "%") continue
+    const digits = query.slice(index + 1, index + 3)
+    if (digits.length < 2 || /[^0-9a-f]/i.test(digits)) return true
+    index += 2
+  }
+  return false
+}
+
 export function allowedUploadUrl(raw: string, hosts: string[]): URL {
   let url: URL
   try {

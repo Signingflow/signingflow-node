@@ -19,7 +19,7 @@ import {
 } from "../src/index.js"
 import { readJailed } from "../src/jail.js"
 import { retryDelayMs } from "../src/net/retry.js"
-import { allowedUploadUrl, fillPath, resolveUrl } from "../src/path.js"
+import { allowedUploadUrl, fillPath, queryContainsSecret, resolveUrl } from "../src/path.js"
 
 const ID = "00000000-0000-4000-8000-000000000001"
 const DOC = "00000000-0000-4000-8000-000000000002"
@@ -287,6 +287,24 @@ test("rejects a non-uuid idempotency key and a key in the query", async () => {
   const { client } = scripted(() => json(200, {}))
   await assert.rejects(client.envelopes.create({ displayName: "NDA", storageId: STORAGE, idempotencyKey: "same-key" }), /UUID/)
   await assert.rejects(client.envelopes.retrieve(ENVELOPE, { readMask: API_KEY }), /query string/)
+  const encodedKey = "df_sk_a/b c+"
+  let sent = 0
+  const encoded = new Signingflow(encodedKey, {
+    workspaceId: "ws-1",
+    env: "sandbox",
+    maxNetworkRetries: 0,
+    fetch: async () => {
+      sent += 1
+      return json(200, {})
+    },
+  })
+  await assert.rejects(encoded.envelopes.retrieve(ENVELOPE, { readMask: encodedKey }), /query string/)
+  await assert.rejects(encoded.envelopes.list({ directory: "needAction", pageToken: encodedKey }), /query string/)
+  await assert.rejects(encoded.envelopes.list({ directory: "needAction", readMask: `prefix ${encodedKey}` }), /query string/)
+  assert.equal(sent, 0)
+  assert.equal(queryContainsSecret("readMask=documents", encodedKey), false)
+  assert.equal(queryContainsSecret("readMask=df_sk_a%2Fb+c%2B", encodedKey), true)
+  assert.equal(queryContainsSecret("readMask=%zz", encodedKey), true)
   await assert.rejects(client.envelopes.retrieve("envelopes/not-an-id"), /envelopes/)
   await assert.rejects(client.envelopes.list({ directory: " " }), /directory/)
   await assert.rejects(client.envelopes.list({ directory: "needAction", pageSize: 0 }), /pageSize/)
